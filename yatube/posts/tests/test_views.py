@@ -1,0 +1,130 @@
+from datetime import datetime
+from http import HTTPStatus
+from itertools import islice
+
+from django.contrib.auth import get_user_model
+from django.test import Client, TestCase
+from django.urls import reverse
+
+from ..models import Group, Post, Follow
+
+User = get_user_model()
+
+
+class PostPagesTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create_user(username="AndreyG")
+        cls.group = Group.objects.create(
+            title="Тестовый заголовок",
+            slug="test-slug",
+            description="testtest"
+        )
+        cls.post = Post.objects.create(
+            text="Тестовый текст",
+            author=cls.user,
+            group=cls.group,
+            pub_date=datetime(2021, 7, 11)
+        )
+        cls.other_post = Post.objects.create(
+            text="текст другого автора",
+            author=User.objects.create_user(username="Maxim"),
+            group=cls.group,
+            pub_date=datetime(2021, 7, 12)
+        )
+
+    def setUp(self):
+        self.guest_client = Client()
+        self.authorized_client = Client()
+        self.authorized_client.force_login(self.user)
+
+    def test_views_pages_show_correct_template(self):
+        templates_pages_names = {
+            "posts/index.html": reverse("index"),
+            "posts/group.html": reverse(
+                "group_posts", kwargs={"slug": "test-slug"}
+            ),
+            "posts/new_post.html": reverse("new_post"),
+        }
+
+        for template, reverse_name in templates_pages_names.items():
+            with self.subTest(reverse_name=reverse_name):
+                response = self.authorized_client.get(reverse_name)
+                self.assertTemplateUsed(response, template)
+
+    def test_views_post_shows_correct_context(self):
+        response = self.authorized_client.get(reverse("index"))
+
+        post = response.context["page"][0]
+
+        self.assertEqual(post.text, "test forms")
+
+    def test_views_post_shows_correct_author(self):
+        response = self.authorized_client.get(
+            reverse("profile", kwargs={"username": "Maxim"})
+        )
+
+        other_post = response.context["page"][0]
+
+        self.assertEqual(other_post.author.username, "Maxim")
+        self.assertEqual(other_post.text, "текст другого автора")
+
+    def test_views_group_shows_correct_context(self):
+        response = self.authorized_client.get(
+            reverse("group_posts", kwargs={"slug": "test-slug"})
+        )
+
+        group = response.context["group"]
+
+        self.assertEqual(group.title, "Тестовый заголовок")
+        self.assertEqual(group.slug, "test-slug")
+        self.assertEqual(group.description, "testtest")
+
+    def test_unauthorized_client_edit_post(self):
+        response = self.guest_client.get("/AnderyG/1/edit/")
+        self.assertRedirects(response, "/auth/login/?next=/AnderyG/1/edit/")
+
+    def test_views_non_author_edit(self):
+        response = self.authorized_client.get("/Maxim/1/edit/").status_code
+        self.assertEqual(response, HTTPStatus.NOT_FOUND)
+
+    def test_views_correct_author(self):
+        form_data = {"text": "112gdfsgdfgdfg", "author": "Maxim"}
+        self.authorized_client.post(
+            reverse("new_post"),
+            data=form_data,
+            follow=True)
+
+        self.assertTrue(Post.objects.filter(
+            text="112gdfsgdfgdfg",
+            author=self.user).exists())
+
+
+class PaginatorViewsTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create_user(username="ZayanG")
+        batch_size = 14
+        objs = (Post(
+            text="Тестовый текст",
+            author=cls.user) for i in range(13))
+        while True:
+            batch = list(islice(objs, batch_size))
+            if not batch:
+                break
+            Post.objects.bulk_create(batch, batch_size)
+
+    def test_views_first_page(self):
+        response = self.client.get(reverse("index"))
+        self.assertEqual(len(response.context.get("page").object_list), 3)
+
+    def test_views_second_page_contains_three_records(self):
+        response = self.client.get(reverse("index") + "?page=2")
+        self.assertEqual(len(response.context.get("page").object_list), 3)
+
+    def test_views_page_contains_correct_context(self):
+        response = self.client.get(reverse("index"))
+        page_context = response.context.get("page").object_list[0].text
+        self.assertEqual(page_context, "test forms")

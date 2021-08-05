@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Избранные авторы{% endblock %}
+{% block header %}Избранные авторы{% endblock %}
+{% block content %}
+
+    {% include "posts/menu.html" with index=True %}
+
+    {% for post in page %}
+    <h2>
+        Автор: {{ post.author.get_full_name }}, Дата публикации: {{ post.pub_date|date:"d M Y" }}
+    </h2>
+        {% include "posts/post_item.html" with post=post %}
+    {% endfor %}
+
+
+
+{% include "paginator.html" with items=page paginator=paginator %}
+
+{% endblock %}
