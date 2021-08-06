@@ -1,6 +1,6 @@
 from django.forms import ModelForm, Textarea
 
-from .models import Post, Comment, Follow
+from .models import Comment, Follow, Post
 
 
 class PostForm(ModelForm):
