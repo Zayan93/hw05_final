@@ -66,9 +66,33 @@ class PostPagesTest(TestCase):
         )
 
         other_post = response.context["page"][0]
+        follow = response.context["following"]
 
         self.assertEqual(other_post.author.username, "Maxim")
         self.assertEqual(other_post.text, "текст другого автора")
+        self.assertEqual(follow, False)
+
+    def test_views_follow_author(self):
+        follow = self.authorized_client.post(
+            reverse("profile_follow", kwargs={"username": "Maxim"})
+        )
+        response = self.authorized_client.get(
+            reverse("profile", kwargs={"username": "Maxim"})
+        )
+        follow = response.context["following"]
+
+        self.assertEqual(follow, True)
+
+    def test_views_unfollow_author(self):
+        follow = self.authorized_client.post(
+            reverse("profile_unfollow", kwargs={"username": "Maxim"})
+        )
+        response = self.authorized_client.get(
+            reverse("profile", kwargs={"username": "Maxim"})
+        )
+        follow = response.context["following"]
+
+        self.assertEqual(follow, False)
 
     def test_views_group_shows_correct_context(self):
         response = self.authorized_client.get(
