@@ -44,7 +44,7 @@ def edit_post(request, username, post_id):
         return redirect("post", post_id=post_id, username=username)
 
     return render(request, "posts/new_post.html", {
-        "form": form, "is_edit": True
+        "form": form, "is_edit": True, "post": post,
     })
 
 
