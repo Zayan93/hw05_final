@@ -26,7 +26,6 @@ class StaticURLTests(TestCase):
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
 
-
     def test_urls_post_url_redirect_anonymous_on_login(self):
         response = self.guest_client.get("/new/", follow=True)
         self.assertRedirects(response, "/auth/login/?next=/new/")

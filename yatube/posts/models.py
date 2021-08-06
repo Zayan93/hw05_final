@@ -1,9 +1,5 @@
-from typing import cast
-
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.db.models.base import Model
-from django.db.models.deletion import CASCADE
 
 User = get_user_model()
 
@@ -61,6 +57,7 @@ class Comment(models.Model):
     def __str__(self):
         return self.text
 
+
 class Follow(models.Model):
     user = models.ForeignKey(
         User,
@@ -74,17 +71,18 @@ class Follow(models.Model):
         related_name="following",
         verbose_name="Избранный автор"
     )
-    post = models.ForeignKey(Post,
+    post = models.ForeignKey(
+        Post,
         on_delete=models.CASCADE,
         related_name="follow_text",
-        null=True)
+        null=True
+    )
 
     class Meta:
         constraints = (
             models.UniqueConstraint(fields=["user", "author"],
                                     name="uniq_follow"),
         )
-        
 
     def __str__(self):
         return str(self.user.username)

@@ -33,6 +33,7 @@ class CommentForm(ModelForm):
             "text": Textarea(attrs={"class": "form-control"}),
         }
 
+
 class FollowForm(ModelForm):
 
     class Meta:

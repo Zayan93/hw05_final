@@ -21,9 +21,15 @@ class PostCreatForm(TestCase):
             title="OtherGroup", slug="OtherGR"
         )
         cls.post = Post.objects.create(
-            text="Text of the post", author=cls.user, group=cls.group, pub_date=datetime(2021, 8, 1))
+            text="Text of the post",
+            author=cls.user,
+            group=cls.group,
+            pub_date=datetime(2021, 8, 1)
+        )
         cls.other_post = Post.objects.create(
-            text="Text without group", author=cls.user, pub_date=datetime(2021, 8, 1)
+            text="Text without group",
+            author=cls.user,
+            pub_date=datetime(2021, 8, 1)
         )
         settings.MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
@@ -75,7 +81,10 @@ class PostCreatForm(TestCase):
 
     def test_forms_edit_post_forms(self):
         posts_count = Post.objects.count()
-        form_data = {"text": "Changed text of the post", "pub_date": datetime(2021, 7, 30)}
+        form_data = {
+            "text": "Changed text of the post",
+            "pub_date": datetime(2021, 7, 30)
+        }
 
         self.authorized_client.post(
             reverse(
@@ -144,7 +153,6 @@ class PostCreatForm(TestCase):
             data=form_data,
             follow=True
         )
-        response = self.authorized_client.get(reverse("index"))
         self.post.refresh_from_db()
 
         self.assertTrue(
