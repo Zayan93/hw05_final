@@ -1,12 +1,12 @@
 from datetime import datetime
 from http import HTTPStatus
-from itertools import islice
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from ..models import Group, Post
+from ..models import Follow, Group, Post
 
 User = get_user_model()
 
@@ -33,11 +33,18 @@ class PostPagesTest(TestCase):
             group=cls.group,
             pub_date=datetime(2021, 7, 12)
         )
+        cls.post_cache = Post.objects.create(
+            text="Test cache text",
+            author=User.objects.create_user(username="Oleg"),
+            group=cls.group,
+            pub_date=datetime(2021, 7, 13)
+        )
 
     def setUp(self):
         self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
+        cache.clear()
 
     def test_views_pages_show_correct_template(self):
         templates_pages_names = {
@@ -58,7 +65,7 @@ class PostPagesTest(TestCase):
 
         post = response.context["page"][0]
 
-        self.assertEqual(post.text, "test forms")
+        self.assertEqual(post.text, "текст другого автора")
 
     def test_views_post_shows_correct_author(self):
         response = self.authorized_client.get(
@@ -73,26 +80,41 @@ class PostPagesTest(TestCase):
         self.assertEqual(follow, False)
 
     def test_views_follow_author(self):
-        follow = self.authorized_client.post(
-            reverse("profile_follow", kwargs={"username": "Maxim"})
-        )
-        response = self.authorized_client.get(
-            reverse("profile", kwargs={"username": "Maxim"})
-        )
-        follow = response.context["following"]
+        self.authorized_client.get(
+            reverse(
+                'profile_follow',
+                kwargs={'username': "Oleg"}))
 
-        self.assertEqual(follow, True)
+        follow_count = Follow.objects.filter(author__username="Oleg").count()
+
+        self.assertEqual(follow_count, 1)
 
     def test_views_unfollow_author(self):
-        follow = self.authorized_client.post(
-            reverse("profile_unfollow", kwargs={"username": "Maxim"})
+        self.authorized_client.post(
+            reverse("profile_unfollow", kwargs={"username": "Oleg"})
+        )
+        follow_count = Follow.objects.filter(author__username="Oleg").count()
+
+        self.assertEqual(follow_count, 0)
+
+    def test_views_add_comment(self):
+        form_data = {
+            "comments": "test of comment",
+        }
+        self.authorized_client.post(
+            reverse(
+                "add_comment",
+                kwargs={"username": "Maxim", "post_id": 1},
+            ),
+            data=form_data,
+            follow=True,
         )
         response = self.authorized_client.get(
-            reverse("profile", kwargs={"username": "Maxim"})
+            reverse("post", kwargs={"username": "Maxim", "post_id": 1})
         )
-        follow = response.context["following"]
+        comment = response.context["page"][0]
 
-        self.assertEqual(follow, False)
+        self.assertEqual(comment, "test of comment")
 
     def test_views_group_shows_correct_context(self):
         response = self.authorized_client.get(
@@ -124,6 +146,19 @@ class PostPagesTest(TestCase):
             text="112gdfsgdfgdfg",
             author=self.user).exists())
 
+    def test_cache(self):
+        response = self.authorized_client.get(reverse('index'))
+        post_count = len(response.context['page'])
+        Post.objects.create(
+            text='Second' * 10,
+            author=self.user
+        )
+        response = self.authorized_client.get(reverse('index'))
+        self.assertEqual(post_count, len(response.context['page']) - 1)
+        cache.clear()
+        response = self.authorized_client.get(reverse('index'))
+        self.assertEqual(post_count + 1, len(response.context['page']))
+
 
 class PaginatorViewsTest(TestCase):
     @classmethod
@@ -134,15 +169,11 @@ class PaginatorViewsTest(TestCase):
         objs = (Post(
             text="Тестовый текст",
             author=cls.user) for i in range(13))
-        while True:
-            batch = list(islice(objs, batch_size))
-            if not batch:
-                break
-            Post.objects.bulk_create(batch, batch_size)
+        Post.objects.bulk_create(objs, batch_size)
 
     def test_views_first_page(self):
         response = self.client.get(reverse("index"))
-        self.assertEqual(len(response.context.get("page").object_list), 3)
+        self.assertEqual(len(response.context.get("page").object_list), 10)
 
     def test_views_second_page_contains_three_records(self):
         response = self.client.get(reverse("index") + "?page=2")
@@ -151,4 +182,4 @@ class PaginatorViewsTest(TestCase):
     def test_views_page_contains_correct_context(self):
         response = self.client.get(reverse("index"))
         page_context = response.context.get("page").object_list[0].text
-        self.assertEqual(page_context, "test forms")
+        self.assertEqual(page_context, "Тестовый текст")

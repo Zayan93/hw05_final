@@ -9,6 +9,8 @@
     <h2>
         Автор: {{ post.author.get_full_name }}, Дата публикации: {{ post.pub_date|date:"d M Y" }}
     </h2>
+    
+
         {% include "posts/post_item.html" with post=post %}
     {% endfor %}
 
