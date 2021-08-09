@@ -97,7 +97,6 @@ class PostPagesTest(TestCase):
 
         self.assertEqual(follow_count, 0)
 
-
     def test_views_group_shows_correct_context(self):
         response = self.authorized_client.get(
             reverse("group_posts", kwargs={"slug": "test-slug"})
