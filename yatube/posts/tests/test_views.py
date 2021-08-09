@@ -65,7 +65,7 @@ class PostPagesTest(TestCase):
 
         post = response.context["page"][0]
 
-        self.assertEqual(post.text, "текст другого автора")
+        self.assertEqual(post.text, "Test cache text")
 
     def test_views_post_shows_correct_author(self):
         response = self.authorized_client.get(
@@ -96,6 +96,23 @@ class PostPagesTest(TestCase):
         follow_count = Follow.objects.filter(author__username="Oleg").count()
 
         self.assertEqual(follow_count, 0)
+
+    def test_views_add_comment(self):
+        form_data = {
+            "comments": "test of comment",
+        }
+        self.authorized_client.post(
+            reverse(
+                "add_comment",
+                kwargs={"username": "Maxim", "post_id": 1},
+            ),
+            data=form_data,
+            follow=True,
+        )
+        response = self.authorized_client.get("/Maxim/1")
+        comment = response.context["comments"]
+
+        self.assertEqual(comment, "test of comment")
 
     def test_views_group_shows_correct_context(self):
         response = self.authorized_client.get(
