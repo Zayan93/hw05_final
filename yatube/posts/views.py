@@ -1,5 +1,3 @@
-from http import HTTPStatus
-
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.core.paginator import Paginator
@@ -141,23 +139,6 @@ def post_view(request, username, post_id):
         request,
         "posts/post.html",
         context
-    )
-
-
-def page_not_found(request, exception):
-    return render(
-        request,
-        "misc/404.html",
-        {"path": request.path},
-        status=HTTPStatus.NOT_FOUND
-    )
-
-
-def server_error(request):
-    return render(
-        request,
-        "misc/500.html",
-        status=HTTPStatus.HTTP_VERSION_NOT_SUPPORTED
     )
 
 

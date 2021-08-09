@@ -19,8 +19,10 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
-handler404 = "posts.views.page_not_found"  # noqa
-handler500 = "posts.views.server_error"  # noqa
+from . import views
+
+handler404 = "yatube.views.page_not_found"  # noqa
+handler500 = "yatube.views.server_error"  # noqa
 
 urlpatterns = [
     path("auth/", include("users.urls")),
@@ -28,6 +30,8 @@ urlpatterns = [
     path("", include("posts.urls")),
     path("admin/admin/", admin.site.urls),
     path("about/", include("about.urls", namespace="about")),
+    path("404/", views.page_not_found, name="404"),
+    path("500/", views.server_error, name="500"),
 ]
 
 if settings.DEBUG:

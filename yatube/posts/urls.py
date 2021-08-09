@@ -15,8 +15,6 @@ urlpatterns = [
     path("<str:username>/", views.profile, name="profile"),
     path("<str:username>/<int:post_id>/", views.post_view, name="post"),
     path("<username>/<post_id>/edit/", views.edit_post, name="post_edit"),
-    path("404/", views.page_not_found, name="404"),
-    path("500/", views.server_error, name="500"),
     path(
         "<str:username>/follow/",
         views.profile_follow,
