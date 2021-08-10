@@ -49,17 +49,16 @@ def edit_post(request, username, post_id):
 
 @require_GET
 def index(request):
-    posts = Post.objects.all().order_by('-pub_date')
-    paginator = Paginator(posts, 10)
-    page_number = request.GET.get("page")
-    if page_number == 1:
-        page = cache.get("index-page")
-        if page is None:
-            page = paginator.get_page(page_number)
-            cache.set("index-page", page, timeout=20)
-        return render(request, "posts/index.html", {"page": page})
-    page = paginator.get_page(page_number)
-    return render(request, "posts/index.html", {"page": page})
+    page_number = request.GET.get('page')
+    page = cache.get('index_page' + f"?page={page_number}")
+    if page is None:
+        posts = Post.objects.all()
+        paginator = Paginator(posts, 10)
+        page = paginator.get_page(page_number)
+        cache.set('index_page' + f"?page={page_number}", page, timeout=20)
+
+    context = {'page': page}
+    return render(request, 'posts/index.html', context)
 
 
 @require_GET
@@ -178,7 +177,7 @@ def profile_follow(request, username):
     if not Follow.objects.filter(
         author=follow_author, user=request.user
     ).exists() and user != follow_author:
-        Follow.objects.create(
+        Follow.objects.get_or_create(
             user_id=request.user.id, author_id=follow_author.id
         )
     return redirect("profile", username)

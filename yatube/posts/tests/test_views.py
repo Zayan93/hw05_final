@@ -91,6 +91,10 @@ class PostPagesTest(TestCase):
 
     def test_views_unfollow_author(self):
         self.authorized_client.post(
+            reverse(
+                'profile_follow',
+                kwargs={'username': "Oleg"}))
+        self.authorized_client.post(
             reverse("profile_unfollow", kwargs={"username": "Oleg"})
         )
         follow_count = Follow.objects.filter(author__username="Oleg").count()
@@ -128,17 +132,15 @@ class PostPagesTest(TestCase):
             author=self.user).exists())
 
     def test_cache(self):
-        response = self.authorized_client.get(reverse('index'))
-        post_count = len(response.context['page'])
-        Post.objects.create(
-            text='Second' * 10,
-            author=self.user
-        )
-        response = self.authorized_client.get(reverse('index'))
-        self.assertEqual(post_count, len(response.context['page']) - 1)
+        post = Post.objects.create(text="Кэш тест текст", author=self.user)
+        response = self.authorized_client.get(reverse("index"))
+        content = response.content
+        post.delete()
+        response = self.authorized_client.get(reverse("index"))
+        self.assertEqual(content, response.content)
         cache.clear()
-        response = self.authorized_client.get(reverse('index'))
-        self.assertEqual(post_count + 1, len(response.context['page']))
+        response = self.authorized_client.get(reverse("index"))
+        self.assertNotEqual(content, response.content)
 
 
 class PaginatorViewsTest(TestCase):
@@ -146,15 +148,14 @@ class PaginatorViewsTest(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username="ZayanG")
-        batch_size = 14
         objs = (Post(
             text="Тестовый текст",
             author=cls.user) for i in range(13))
-        Post.objects.bulk_create(objs, batch_size)
+        Post.objects.bulk_create(objs)
 
     def test_views_first_page(self):
         response = self.client.get(reverse("index"))
-        self.assertEqual(len(response.context.get("page").object_list), 10)
+        self.assertEqual(len(response.context.get("page").object_list), 3)
 
     def test_views_second_page_contains_three_records(self):
         response = self.client.get(reverse("index") + "?page=2")
@@ -163,4 +164,4 @@ class PaginatorViewsTest(TestCase):
     def test_views_page_contains_correct_context(self):
         response = self.client.get(reverse("index"))
         page_context = response.context.get("page").object_list[0].text
-        self.assertEqual(page_context, "Тестовый текст")
+        self.assertEqual(page_context, "test forms")
