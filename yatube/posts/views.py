@@ -50,12 +50,13 @@ def edit_post(request, username, post_id):
 @require_GET
 def index(request):
     page_number = request.GET.get('page')
-    page = cache.get('index_page' + f"?page={page_number}")
+    key = f"index-cache-page-{page_number}"
+    page = cache.get(key)
     if page is None:
         posts = Post.objects.all()
         paginator = Paginator(posts, 10)
         page = paginator.get_page(page_number)
-        cache.set('index_page' + f"?page={page_number}", page, timeout=20)
+        cache.set(key, page, timeout=20)
 
     context = {'page': page}
     return render(request, 'posts/index.html', context)
