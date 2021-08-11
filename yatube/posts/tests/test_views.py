@@ -65,7 +65,7 @@ class PostPagesTest(TestCase):
 
         post = response.context["page"][0]
 
-        self.assertEqual(post.text, "текст другого автора")
+        self.assertEqual(post.text, "Test cache text")
 
     def test_views_post_shows_correct_author(self):
         response = self.authorized_client.get(
@@ -155,7 +155,7 @@ class PaginatorViewsTest(TestCase):
 
     def test_views_first_page(self):
         response = self.client.get(reverse("index"))
-        self.assertEqual(len(response.context.get("page").object_list), 3)
+        self.assertEqual(len(response.context.get("page").object_list), 10)
 
     def test_views_second_page_contains_three_records(self):
         response = self.client.get(reverse("index") + "?page=2")
@@ -164,4 +164,4 @@ class PaginatorViewsTest(TestCase):
     def test_views_page_contains_correct_context(self):
         response = self.client.get(reverse("index"))
         page_context = response.context.get("page").object_list[0].text
-        self.assertEqual(page_context, "test forms")
+        self.assertEqual(page_context, "Тестовый текст")
